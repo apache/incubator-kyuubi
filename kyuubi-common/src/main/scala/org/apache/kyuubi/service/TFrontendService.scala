@@ -31,6 +31,7 @@ import org.apache.thrift.transport.TTransport
 
 import org.apache.kyuubi.{KyuubiSQLException, Logging, Utils}
 import org.apache.kyuubi.Utils.stringifyException
+import org.apache.kyuubi.config.KyuubiConf
 import org.apache.kyuubi.config.KyuubiConf.FRONTEND_CONNECTION_URL_USE_HOSTNAME
 import org.apache.kyuubi.config.KyuubiReservedKeys.KYUUBI_CLIENT_IP_KEY
 import org.apache.kyuubi.operation.{FetchOrientation, OperationHandle}
@@ -598,7 +599,13 @@ abstract class TFrontendService(name: String)
       if (handle != null) {
         info(s"Session [$handle] disconnected without closing properly, close it now")
         try {
-          be.closeSession(handle)
+          val close = conf.get(KyuubiConf.FRONTEND_THRIFT_CLOSE_SESSION_ON_DISCONNECT)
+          if (close) {
+            be.closeSession(handle)
+          } else {
+            warn("Backend service session not actually closed because configuration " +
+              s"${KyuubiConf.FRONTEND_THRIFT_CLOSE_SESSION_ON_DISCONNECT.key} is set to false.")
+          }
         } catch {
           case e: KyuubiSQLException =>
             error("Failed closing session", e)
