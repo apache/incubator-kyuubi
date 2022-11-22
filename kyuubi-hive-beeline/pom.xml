@@ -38,6 +38,12 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.kyuubi</groupId>
+            <artifactId>kyuubi-common_2.12</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kyuubi</groupId>
             <artifactId>kyuubi-hive-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -194,8 +200,41 @@
                 <artifactId>scala-maven-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>eclipse-add-source</id>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile-first</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
                         <id>attach-scaladocs</id>
                         <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

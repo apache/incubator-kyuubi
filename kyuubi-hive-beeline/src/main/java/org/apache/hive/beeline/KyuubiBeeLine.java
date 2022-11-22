@@ -29,6 +29,8 @@ import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.hive.beeline.hs2connection.DefaultConnectionUrlParser;
+import org.apache.kyuubi.jdbc.hive.JdbcConnectionParams;
 
 public class KyuubiBeeLine extends BeeLine {
   public static final String KYUUBI_BEELINE_DEFAULT_JDBC_DRIVER =
@@ -159,6 +161,10 @@ public class KyuubiBeeLine extends BeeLine {
       }
     }
 
+    if (!connSuccessful && !exit) {
+      connSuccessful = defaultKyuubiBeelineConnect(cl);
+    }
+
     int code = 0;
     if (cl.getOptionValues('e') != null) {
       commands = Arrays.asList(cl.getOptionValues('e'));
@@ -190,5 +196,42 @@ public class KyuubiBeeLine extends BeeLine {
       }
     }
     return code;
+  }
+
+  /*
+   * Attempts to make a connection using beeline conf in kyuubi-defaults.conf if available
+   *
+   */
+  private boolean defaultKyuubiBeelineConnect(CommandLine cl) {
+    String url;
+    try {
+      url = getDefaultKyuubiConnectionUrl(cl);
+      if (url == null) {
+        return false;
+      }
+    } catch (Exception e) {
+      error(e);
+      return false;
+    }
+    return dispatch("!connect " + url);
+  }
+
+  private String getDefaultKyuubiConnectionUrl(CommandLine cl) {
+    DefaultConnectionUrlParser parser = new DefaultConnectionUrlParser();
+
+    String userName = cl.getOptionValue("n");
+    if (userName != null) {
+      parser.addSessionConfs(JdbcConnectionParams.AUTH_USER, userName);
+    }
+    String password = cl.getOptionValue("p");
+    if (password != null) {
+      parser.addSessionConfs(JdbcConnectionParams.AUTH_PASSWD, userName);
+    }
+    String auth = cl.getOptionValue("a");
+    if (auth != null) {
+      parser.addSessionConfs(JdbcConnectionParams.AUTH_TYPE, userName);
+    }
+
+    return parser.getConnectionUrl();
   }
 }
