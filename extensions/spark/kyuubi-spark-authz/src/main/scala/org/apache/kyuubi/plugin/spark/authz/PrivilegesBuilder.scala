@@ -33,7 +33,7 @@ import org.apache.spark.sql.types.StructField
 import org.apache.kyuubi.plugin.spark.authz.PrivilegeObjectActionType._
 import org.apache.kyuubi.plugin.spark.authz.PrivilegeObjectType._
 import org.apache.kyuubi.plugin.spark.authz.util.AuthZUtils._
-import org.apache.kyuubi.plugin.spark.authz.util.PermanentViewMarker
+import org.apache.kyuubi.plugin.spark.authz.util.{ArcticCmdUtils, PermanentViewMarker}
 import org.apache.kyuubi.plugin.spark.authz.v2Commands.v2TablePrivileges
 
 object PrivilegesBuilder {
@@ -246,6 +246,9 @@ object PrivilegesBuilder {
     plan.nodeName match {
       case v2Cmd if v2Commands.accept(v2Cmd) =>
         v2Commands.withName(v2Cmd).buildPrivileges(plan, inputObjs, outputObjs)
+
+      case arcticCmd if ArcticCmdUtils.accept(arcticCmd) =>
+        ArcticCmdUtils.buildPrivileges(arcticCmd, plan, inputObjs, outputObjs)
 
       case icebergCmd if IcebergCommands.accept(icebergCmd) =>
         IcebergCommands.withName(icebergCmd).buildPrivileges(plan, inputObjs, outputObjs)
@@ -577,20 +580,6 @@ object PrivilegesBuilder {
         val resolvedNamespace = getPlanField[Any]("namespace")
         val databases = getFieldVal[Seq[String]](resolvedNamespace, "namespace")
         outputObjs += databasePrivileges(quote(databases))
-
-      case "ReplaceArcticData" =>
-        val relation = getPlanField[Any]("table")
-        val identifier = getFieldVal[AnyRef](relation, "identifier")
-        val namespace = invoke(identifier, "namespace").asInstanceOf[Array[String]]
-        val table = invoke(identifier, "name").asInstanceOf[String]
-        val owner = getTableOwnerFromV2Plan(relation, identifier.asInstanceOf[Identifier])
-        outputObjs += PrivilegeObject(
-          TABLE_OR_VIEW,
-          PrivilegeObjectActionType.UPDATE,
-          quote(namespace),
-          table,
-          Nil,
-          owner)
 
       case _ =>
       // AddArchivesCommand
