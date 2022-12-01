@@ -29,3 +29,29 @@ CREATE TABLE IF NOT EXISTS metadata(
     INDEX user_name_index(user_name),
     INDEX engine_type_index(engine_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_sys_user` (
+                              `id` bigint(20) NOT NULL AUTO_INCREMENT,
+                              `group_id` bigint(20) DEFAULT NULL COMMENT 'group id',
+                              `name` varchar(255) NOT NULL COMMENT 'user name',
+                              `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+                              `remark` varchar(500) NOT NULL COMMENT 'remark',
+                              PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_limit_user` (
+                                `id` bigint(20) NOT NULL AUTO_INCREMENT,
+                                `user_id` bigint(20) NOT NULL COMMENT 'user id',
+                                `num` int(20) NOT NULL COMMENT 'number of limit value',
+                                `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+                                `remark` varchar(500) NOT NULL COMMENT 'remark',
+                                PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_sys_group` (
+                               `id` bigint(20) NOT NULL AUTO_INCREMENT,
+                               `name` varchar(255) NOT NULL COMMENT 'group name',
+                               `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
+                               `remark` varchar(500) NOT NULL COMMENT 'remark',
+                               PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
