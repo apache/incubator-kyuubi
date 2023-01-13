@@ -50,6 +50,8 @@ abstract class TBinaryFrontendService(name: String)
     conf.get(FRONTEND_THRIFT_BINARY_BIND_HOST)
   final override protected lazy val portNum: Int = conf.get(FRONTEND_THRIFT_BINARY_BIND_PORT)
 
+  private lazy val stopTimeout = conf.get(FRONTEND_THRIFT_STOP_TIMEOUT).toInt
+
   protected var server: Option[TServer] = None
   private var _actualPort: Int = _
   override protected lazy val actualPort: Int = _actualPort
@@ -114,6 +116,7 @@ abstract class TBinaryFrontendService(name: String)
         .beBackoffSlotLength(beBackoffSlotLength)
         .beBackoffSlotLengthUnit(TimeUnit.MILLISECONDS)
         .executorService(executor)
+        .stopTimeoutVal(stopTimeout / 1000)
       // TCP Server
       server = Some(new TThreadPoolServer(args))
       server.foreach(_.setServerEventHandler(new FeTServerEventHandler))
@@ -184,7 +187,16 @@ abstract class TBinaryFrontendService(name: String)
     }
 
   override protected def stopServer(): Unit = {
-    server.foreach(_.stop())
+    server.foreach { s =>
+      {
+        s.stop()
+        // wait for the server to stop until timeout
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < stopTimeout && s.isServing) {
+          Thread.sleep(500)
+        }
+      }
+    }
     server = None
   }
 }
