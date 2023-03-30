@@ -14,21 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kyuubi.plugin.spark.authz.ranger
 
-import org.apache.spark.sql.{SparkSession, Strategy}
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+package org.apache.kyuubi.plugin.spark.authz.serde
+
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.SparkPlan
 
-import org.apache.kyuubi.plugin.spark.authz.util.ObjectFilterPlaceHolder
+import org.apache.kyuubi.plugin.spark.authz.ranger.{FilteredShowNamespaceExec, FilteredShowTablesExec}
 
-class FilterDataSourceV2Strategy(spark: SparkSession) extends Strategy {
-  override def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
-    case ObjectFilterPlaceHolder(child) if child.nodeName == "ShowNamespaces" =>
-      spark.sessionState.planner.plan(child).map(FilteredShowNamespaceExec).toSeq
+trait SparkPlanRewriter extends Rewriter {
 
-    case ObjectFilterPlaceHolder(child) if child.nodeName == "ShowTables" =>
-      spark.sessionState.planner.plan(child).map(FilteredShowTablesExec).toSeq
-    case _ => Nil
+  def rewrite(spark: SparkSession, plan: SparkPlan): SparkPlan
+
+}
+
+object SparkPlanRewriter {
+  val sparkPlanRewriters: Map[String, SparkPlanRewriter] =
+    loadRewritersToMap[SparkPlanRewriter]
+}
+
+class ShowNamespaceExecRewriter extends SparkPlanRewriter {
+  override def rewrite(spark: SparkSession, plan: SparkPlan): SparkPlan = {
+    FilteredShowNamespaceExec(plan)
+  }
+}
+
+class ShowTablesExecRewriter extends SparkPlanRewriter {
+  override def rewrite(spark: SparkSession, plan: SparkPlan): SparkPlan = {
+    FilteredShowTablesExec(plan)
   }
 }

@@ -830,7 +830,7 @@ abstract class PrivilegesBuilderSuite extends AnyFunSuite
     checkTableOwner(po0)
     val accessType0 = ranger.AccessType(po0, operationType, isInput = true)
 
-    assert(accessType0 === AccessType.SELECT)
+    assert(accessType0 === AccessType.NONE)
     assert(out.size === 0)
   }
 

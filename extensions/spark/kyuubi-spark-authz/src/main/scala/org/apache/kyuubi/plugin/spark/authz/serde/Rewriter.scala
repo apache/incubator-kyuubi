@@ -15,12 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.kyuubi.plugin.spark.authz.util
+package org.apache.kyuubi.plugin.spark.authz.serde
 
-import org.apache.spark.sql.catalyst.expressions.Attribute
-import org.apache.spark.sql.catalyst.plans.logical.{LeafNode, LogicalPlan, Statistics}
+trait Rewriter {
 
-case class ObjectFilterPlaceHolder(child: LogicalPlan) extends LeafNode {
-  override def output: Seq[Attribute] = child.output
-  override def computeStats(): Statistics = child.stats
+  def key: String = getClass.getSimpleName
 }
