@@ -161,7 +161,8 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
     val ddls =
       """
         |create table v2_catalog.db.target_t(id int, name string, price float)
-        |create table v2_catalog.db.source_t(id int, name string, price float)
+        |create table v2_catalog.db.source_t(id int, name string, price float, price2 float)
+        |create table v2_catalog.db.source_t0(id int, name string, price float)
         |create table v2_catalog.db.pivot_t(id int, price float)
         |""".stripMargin
     ddls.split("\n").filter(_.nonEmpty).foreach(spark.sql(_).collect())
@@ -172,33 +173,35 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
         "WHEN MATCHED THEN " +
         "  UPDATE SET target.name = source.name, target.price = source.price " +
         "WHEN NOT MATCHED THEN " +
-        "  INSERT (id, name, price) VALUES (cast(source.id as int), source.name, source.price)")
+        "  INSERT (id, name, price) VALUES (cast(source.id as int), source.name, source.price2)")
       assert(ret0 == Lineage(
         List("v2_catalog.db.source_t"),
         List("v2_catalog.db.target_t"),
         List(
           ("v2_catalog.db.target_t.id", Set("v2_catalog.db.source_t.id")),
           ("v2_catalog.db.target_t.name", Set("v2_catalog.db.source_t.name")),
-          ("v2_catalog.db.target_t.price", Set("v2_catalog.db.source_t.price")))))
+          (
+            "v2_catalog.db.target_t.price",
+            Set("v2_catalog.db.source_t.price2", "v2_catalog.db.source_t.price")))))
 
       val ret1 = exectractLineageWithoutExecuting("MERGE INTO v2_catalog.db.target_t AS target " +
-        "USING v2_catalog.db.source_t AS source " +
+        "USING v2_catalog.db.source_t0 AS source " +
         "ON target.id = source.id " +
         "WHEN MATCHED THEN " +
         "  UPDATE SET * " +
         "WHEN NOT MATCHED THEN " +
         "  INSERT *")
       assert(ret1 == Lineage(
-        List("v2_catalog.db.source_t"),
+        List("v2_catalog.db.source_t0"),
         List("v2_catalog.db.target_t"),
         List(
-          ("v2_catalog.db.target_t.id", Set("v2_catalog.db.source_t.id")),
-          ("v2_catalog.db.target_t.name", Set("v2_catalog.db.source_t.name")),
-          ("v2_catalog.db.target_t.price", Set("v2_catalog.db.source_t.price")))))
+          ("v2_catalog.db.target_t.id", Set("v2_catalog.db.source_t0.id")),
+          ("v2_catalog.db.target_t.name", Set("v2_catalog.db.source_t0.name")),
+          ("v2_catalog.db.target_t.price", Set("v2_catalog.db.source_t0.price")))))
 
       val ret2 = exectractLineageWithoutExecuting("MERGE INTO v2_catalog.db.target_t AS target " +
         "USING (select a.id, a.name, b.price " +
-        "from v2_catalog.db.source_t a join v2_catalog.db.pivot_t b) AS source " +
+        "from v2_catalog.db.source_t0 a join v2_catalog.db.pivot_t b) AS source " +
         "ON target.id = source.id " +
         "WHEN MATCHED THEN " +
         "  UPDATE SET * " +
@@ -206,12 +209,29 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
         "  INSERT *")
 
       assert(ret2 == Lineage(
-        List("v2_catalog.db.source_t", "v2_catalog.db.pivot_t"),
+        List("v2_catalog.db.source_t0", "v2_catalog.db.pivot_t"),
         List("v2_catalog.db.target_t"),
         List(
-          ("v2_catalog.db.target_t.id", Set("v2_catalog.db.source_t.id")),
-          ("v2_catalog.db.target_t.name", Set("v2_catalog.db.source_t.name")),
+          ("v2_catalog.db.target_t.id", Set("v2_catalog.db.source_t0.id")),
+          ("v2_catalog.db.target_t.name", Set("v2_catalog.db.source_t0.name")),
           ("v2_catalog.db.target_t.price", Set("v2_catalog.db.pivot_t.price")))))
+
+      val ret3 = exectractLineageWithoutExecuting("MERGE INTO v2_catalog.db.target_t AS target " +
+        "USING (select a.id, a.name, a.price " +
+        "from v2_catalog.db.source_t0 a join v2_catalog.db.pivot_t b) AS source " +
+        "ON target.id = source.id " +
+        "WHEN MATCHED THEN " +
+        "  UPDATE SET * " +
+        "WHEN NOT MATCHED THEN " +
+        "  INSERT *")
+
+      assert(ret3 == Lineage(
+        List("v2_catalog.db.source_t0", "v2_catalog.db.pivot_t"),
+        List("v2_catalog.db.target_t"),
+        List(
+          ("v2_catalog.db.target_t.id", Set("v2_catalog.db.source_t0.id")),
+          ("v2_catalog.db.target_t.name", Set("v2_catalog.db.source_t0.name")),
+          ("v2_catalog.db.target_t.price", Set("v2_catalog.db.source_t0.price")))))
     }
 
   }
@@ -996,7 +1016,7 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
           |""".stripMargin
       val ret3 = exectractLineage(sql3)
       assert(ret3 == Lineage(
-        List("default.table0"),
+        List("default.table0", "default.table1"),
         List(),
         List(
           ("a", Set("default.table0.a")),
@@ -1010,7 +1030,7 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
           |""".stripMargin
       val ret4 = exectractLineage(sql4)
       assert(ret4 == Lineage(
-        List("default.table0"),
+        List("default.table0", "default.table1"),
         List(),
         List(
           ("a", Set("default.table0.a")),
@@ -1023,7 +1043,7 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
           |""".stripMargin
       val ret5 = exectractLineage(sql5)
       assert(ret5 == Lineage(
-        List("default.table0"),
+        List("default.table0", "default.table1"),
         List(),
         List(
           ("a", Set("default.table0.a")),
@@ -1036,7 +1056,7 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
           |""".stripMargin
       val ret6 = exectractLineage(sql6)
       assert(ret6 == Lineage(
-        List("default.table0"),
+        List("default.table0", "default.table1"),
         List(),
         List(
           ("a", Set("default.table0.a")),
@@ -1049,7 +1069,7 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
           |""".stripMargin
       val ret7 = exectractLineage(sql7)
       assert(ret7 == Lineage(
-        List("default.table0"),
+        List("default.table0", "default.table1"),
         List(),
         List(
           ("a", Set("default.table0.a")),
@@ -1345,6 +1365,25 @@ class SparkSQLLineageParserHelperSuite extends KyuubiFunSuite
           ("default.t1.b", Set("default.t2.b")),
           ("default.t1.c", Set("default.t2.d")),
           ("default.t1.d", Set("default.t2.d")))))
+    }
+  }
+
+  test("test table lineage") {
+    withTable("t1", "t2") { _ =>
+      spark.sql("CREATE TABLE t1 (a string, b string) USING hive")
+      spark.sql("CREATE TABLE t2 (a string, b string) USING hive")
+
+      val ret0 = exectractLineage("select t1.a from t1 where t1.b in (select b from t2)")
+      assert(ret0 == Lineage(
+        List("default.t1", "default.t2"),
+        List(),
+        List(("a", Set("default.t1.a")))))
+
+      val ret1 = exectractLineage("select t1.a from t1 join t2")
+      assert(ret1 == Lineage(
+        List("default.t1", "default.t2"),
+        List(),
+        List(("a", Set("default.t1.a")))))
     }
   }
 
