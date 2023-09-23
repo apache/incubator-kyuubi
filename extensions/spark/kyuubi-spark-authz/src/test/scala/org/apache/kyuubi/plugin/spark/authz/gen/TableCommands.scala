@@ -18,6 +18,7 @@
 package org.apache.kyuubi.plugin.spark.authz.gen
 
 import org.apache.kyuubi.plugin.spark.authz.OperationType._
+import org.apache.kyuubi.plugin.spark.authz.PrivilegeObjectActionType
 import org.apache.kyuubi.plugin.spark.authz.PrivilegeObjectActionType._
 import org.apache.kyuubi.plugin.spark.authz.serde._
 import org.apache.kyuubi.plugin.spark.authz.serde.TableType._
@@ -259,7 +260,7 @@ object TableCommands {
 
   val UpdateTable = {
     val cmd = "org.apache.spark.sql.catalyst.plans.logical.UpdateTable"
-    val actionTypeDesc = ActionTypeDesc(actionType = Some(UPDATE))
+    val actionTypeDesc = ActionTypeDesc(actionType = Some(PrivilegeObjectActionType.UPDATE))
     val tableDesc =
       TableDesc(
         "table",
@@ -454,7 +455,7 @@ object TableCommands {
 
   val MergeIntoTable = {
     val cmd = "org.apache.spark.sql.catalyst.plans.logical.MergeIntoTable"
-    val actionTypeDesc = ActionTypeDesc(actionType = Some(UPDATE))
+    val actionTypeDesc = ActionTypeDesc(actionType = Some(PrivilegeObjectActionType.UPDATE))
     val tableDesc = TableDesc(
       "targetTable",
       classOf[DataSourceV2RelationTableExtractor],
@@ -582,6 +583,17 @@ object TableCommands {
     TableCommandSpec(cmd, Seq(tableIdentDesc.copy(isInput = true)))
   }
 
+  val ReplaceData = {
+    val cmd = "org.apache.spark.sql.catalyst.plans.logical.ReplaceData"
+    val actionTypeDesc = ActionTypeDesc(actionType = Some(PrivilegeObjectActionType.UPDATE))
+    val tableDesc =
+      TableDesc(
+        "table",
+        classOf[DataSourceV2RelationTableExtractor],
+        actionTypeDesc = Some(actionTypeDesc))
+    TableCommandSpec(cmd, Seq(tableDesc), PrivilegeObjectActionType.UPDATE)
+  }
+
   val data: Array[TableCommandSpec] = Array(
     AddPartitions,
     DropPartitions,
@@ -665,5 +677,6 @@ object TableCommands {
     ShowTablePropertiesV2,
     TruncateTable,
     TruncateTableV2,
+    ReplaceData,
     UpdateTable)
 }
