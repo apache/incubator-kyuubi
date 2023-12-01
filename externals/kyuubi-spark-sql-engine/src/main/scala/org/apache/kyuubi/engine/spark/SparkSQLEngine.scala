@@ -202,9 +202,12 @@ object SparkSQLEngine extends Logging {
       SparkTBinaryFrontendService.renewDelegationToken(session.sparkContext, credentials)
     }
 
-    KyuubiSparkUtil.initializeSparkSession(
-      session,
-      kyuubiConf.get(ENGINE_INITIALIZE_SQL) ++ kyuubiConf.get(ENGINE_SESSION_INITIALIZE_SQL))
+    val initSql =
+      KyuubiSparkUtil.getInitializeSql(session, kyuubiConf.get(KyuubiConf.ENGINE_INITIALIZE_SQL)) ++
+        KyuubiSparkUtil.getInitializeSql(
+          session,
+          kyuubiConf.get(KyuubiConf.ENGINE_SESSION_INITIALIZE_SQL))
+    KyuubiSparkUtil.initializeSparkSession(session, initSql)
     session
   }
 
