@@ -18,8 +18,10 @@
 package org.apache.kyuubi.engine.spark.operation
 
 import java.io.IOException
+import java.security.PrivilegedAction
 import java.time.ZoneId
 
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.spark.kyuubi.{SparkProgressMonitor, SQLOperationListener}
 import org.apache.spark.kyuubi.SparkUtilsHelper.redact
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
@@ -28,8 +30,9 @@ import org.apache.spark.sql.types.StructType
 
 import org.apache.kyuubi.{KyuubiSQLException, Utils}
 import org.apache.kyuubi.config.KyuubiConf
-import org.apache.kyuubi.config.KyuubiConf.{ARROW_BASED_ROWSET_TIMESTAMP_AS_STRING, OPERATION_SPARK_LISTENER_ENABLED, SESSION_PROGRESS_ENABLE, SESSION_USER_SIGN_ENABLED}
-import org.apache.kyuubi.config.KyuubiReservedKeys.{KYUUBI_SESSION_SIGN_PUBLICKEY, KYUUBI_SESSION_USER_KEY, KYUUBI_SESSION_USER_SIGN, KYUUBI_STATEMENT_ID_KEY}
+import org.apache.kyuubi.config.KyuubiConf.{ARROW_BASED_ROWSET_TIMESTAMP_AS_STRING, ENGINE_SHARE_LEVEL, ENGINE_USER_PROXY_SPARK_SESSION, OPERATION_SPARK_LISTENER_ENABLED, SESSION_PROGRESS_ENABLE, SESSION_USER_SIGN_ENABLED}
+import org.apache.kyuubi.config.KyuubiReservedKeys.{KYUUBI_SESSION_SIGN_PUBLICKEY, KYUUBI_SESSION_USER_CREDENTIALS_KEY, KYUUBI_SESSION_USER_KEY, KYUUBI_SESSION_USER_SIGN, KYUUBI_STATEMENT_ID_KEY}
+import org.apache.kyuubi.engine.ShareLevel
 import org.apache.kyuubi.engine.spark.KyuubiSparkUtil.{getSessionConf, SPARK_SCHEDULER_POOL_KEY}
 import org.apache.kyuubi.engine.spark.events.SparkOperationEvent
 import org.apache.kyuubi.engine.spark.operation.SparkOperation.TIMEZONE_KEY
@@ -42,6 +45,7 @@ import org.apache.kyuubi.operation.OperationState.OperationState
 import org.apache.kyuubi.operation.log.OperationLog
 import org.apache.kyuubi.session.Session
 import org.apache.kyuubi.shaded.hive.service.rpc.thrift.{TFetchResultsResp, TGetResultSetMetadataResp, TProgressUpdateResp, TRowSet}
+import org.apache.kyuubi.util.KyuubiHadoopUtils
 
 abstract class SparkOperation(session: Session)
   extends AbstractOperation(session) {
@@ -113,6 +117,10 @@ abstract class SparkOperation(session: Session)
     s"spark.${SESSION_USER_SIGN_ENABLED.key}",
     SESSION_USER_SIGN_ENABLED.defaultVal.get)
 
+  protected val isSessionUserAsProxyUser = getSessionConf(ENGINE_USER_PROXY_SPARK_SESSION, spark) &&
+    (getSessionConf(ENGINE_SHARE_LEVEL, spark).equals(ShareLevel.GROUP.toString) ||
+      getSessionConf(ENGINE_SHARE_LEVEL, spark).equals(ShareLevel.SERVER.toString))
+
   protected def eventEnabled: Boolean = true
 
   if (eventEnabled) EventBus.post(SparkOperationEvent(this))
@@ -144,7 +152,26 @@ abstract class SparkOperation(session: Session)
           setSessionUserSign()
         }
 
-        f
+        if (isSessionUserAsProxyUser) {
+          val ugi =
+            UserGroupInformation.createProxyUser(session.user, UserGroupInformation.getLoginUser)
+          if (UserGroupInformation.getLoginUser.hasKerberosCredentials) {
+            session.conf.get(KYUUBI_SESSION_USER_CREDENTIALS_KEY) match {
+              case Some(credStr) =>
+                val sessionUserCred = KyuubiHadoopUtils.decodeCredentials(credStr)
+                ugi.addCredentials(sessionUserCred)
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"missing $KYUUBI_SESSION_USER_CREDENTIALS_KEY" +
+                    s" in session config for session user sign")
+            }
+          }
+          ugi.doAs(new PrivilegedAction[T] {
+            override def run(): T = f
+          })
+        } else {
+          f
+        }
       } finally {
         spark.sparkContext.setLocalProperty(SPARK_SCHEDULER_POOL_KEY, null)
         spark.sparkContext.setLocalProperty(KYUUBI_SESSION_USER_KEY, null)
