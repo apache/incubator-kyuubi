@@ -263,3 +263,20 @@ prometheusRule:
   enabled: false
   # Contents of Prometheus rules file
   groups: []
+
+ha:
+  etcd:
+    ssl:
+      enabled: false
+      mountParentPath: ~
+      ca:
+        path: ~
+        mountPath: "{{  .Values.ha.etcd.ssl.mountParentPath }}/ca.crt"
+      client:
+        certificate:
+          path: ~
+          mountPath: "{{  .Values.ha.etcd.ssl.mountParentPath }}/client.crt"
+        key:
+          path: ~
+          mountPath: "{{  .Values.ha.etcd.ssl.mountParentPath }}/client.pem"
+
