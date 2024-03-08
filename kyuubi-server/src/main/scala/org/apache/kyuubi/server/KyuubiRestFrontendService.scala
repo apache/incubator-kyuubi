@@ -31,6 +31,7 @@ import org.eclipse.jetty.servlet.{ErrorPageErrorHandler, FilterHolder}
 import org.apache.kyuubi.{KyuubiException, Utils}
 import org.apache.kyuubi.config.KyuubiConf
 import org.apache.kyuubi.config.KyuubiConf._
+import org.apache.kyuubi.config.KyuubiConf.FrontendProtocols.REST
 import org.apache.kyuubi.server.api.v1.ApiRootResource
 import org.apache.kyuubi.server.http.authentication.{AuthenticationFilter, KyuubiHttpAuthenticationFactory}
 import org.apache.kyuubi.server.ui.{JettyServer, JettyUtils}
@@ -72,7 +73,7 @@ class KyuubiRestFrontendService(override val serverable: Serverable)
   private lazy val port: Int = conf.get(FRONTEND_REST_BIND_PORT)
 
   private[kyuubi] lazy val securityEnabled = {
-    val authTypes = conf.get(AUTHENTICATION_METHOD).map(AuthTypes.withName)
+    val authTypes = conf.get(FRONTEND_REST_AUTHENTICATION_METHOD).map(AuthTypes.withName)
     AuthUtils.kerberosEnabled(authTypes) ||
     !AuthUtils.effectivePlainAuthType(authTypes).contains(AuthTypes.NONE)
   }
@@ -104,7 +105,7 @@ class KyuubiRestFrontendService(override val serverable: Serverable)
 
   private def startInternal(): Unit = {
     val contextHandler = ApiRootResource.getServletHandler(this)
-    val holder = new FilterHolder(new AuthenticationFilter(conf))
+    val holder = new FilterHolder(new AuthenticationFilter(conf, REST))
     contextHandler.addFilter(holder, "/v1/*", EnumSet.allOf(classOf[DispatcherType]))
     val authenticationFactory = new KyuubiHttpAuthenticationFactory(conf)
     server.addHandler(authenticationFactory.httpHandlerWrapperFactory.wrapHandler(contextHandler))
