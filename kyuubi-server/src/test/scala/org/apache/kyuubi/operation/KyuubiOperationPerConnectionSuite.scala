@@ -80,7 +80,7 @@ class KyuubiOperationPerConnectionSuite extends WithKyuubiServer with HiveJDBCTe
       assert(executeStmtResp.getOperationHandle === null)
       val errMsg = executeStmtResp.getStatus.getErrorMessage
       assert(errMsg.contains("Caused by: java.net.SocketException: Connection reset") ||
-        errMsg.contains(s"Socket for ${SessionHandle(handle)} is closed") ||
+        errMsg.contains(s"connection for ${SessionHandle(handle)} is closed") ||
         errMsg.contains("Socket is closed by peer") ||
         errMsg.contains("SparkContext was shut down"))
     }
@@ -343,6 +343,39 @@ class KyuubiOperationPerConnectionSuite extends WithKyuubiServer with HiveJDBCTe
         eventually(timeout(3.seconds)) {
           assert(session.client.asyncRequestInterrupted)
         }
+      }
+    }
+  }
+
+  test("throw connectionClosed KyuubiSQLException when engine died") {
+    withSessionConf()(Map.empty)(Map.empty) {
+      withSessionHandle { (client, handle) =>
+        val preReq = new TExecuteStatementReq()
+        preReq.setStatement("select engine_name()")
+        preReq.setSessionHandle(handle)
+        preReq.setRunAsync(false)
+        client.ExecuteStatement(preReq)
+
+        val sessionHandle = SessionHandle(handle)
+
+        val exitReq = new TExecuteStatementReq()
+        exitReq.setStatement("SELECT java_method('java.lang.Thread', 'sleep', 1000L)," +
+          "java_method('java.lang.System', 'exit', 1)")
+        exitReq.setSessionHandle(handle)
+        exitReq.setRunAsync(true)
+        client.ExecuteStatement(exitReq)
+
+        val executeStmtReq = new TExecuteStatementReq()
+        executeStmtReq.setSessionHandle(handle)
+        executeStmtReq.setRunAsync(true)
+        exitReq.setStatement("SELECT java_method('java.lang.Thread', 'sleep', 30000l)")
+        exitReq.setSessionHandle(handle)
+        exitReq.setRunAsync(true)
+        val status = client.ExecuteStatement(exitReq).getStatus
+        assert(status.getStatusCode === TStatusCode.ERROR_STATUS)
+        assert(status.getSqlState.equals("08003"))
+        assert(status.getErrorCode == 91001)
+        assert(status.getErrorMessage.contains(s"connection for ${sessionHandle} is closed"))
       }
     }
   }
