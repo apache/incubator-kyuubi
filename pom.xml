@@ -116,13 +116,12 @@
         <maven.version>3.9.9</maven.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-        <scala.version>2.12.19</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
-        <scala-collection-compat.version>2.12.0</scala-collection-compat.version>
+        <scala.version>2.13.14</scala.version>
+        <scala.binary.version>2.13</scala.binary.version>
+        <scala-collection-compat.version>2.8.1</scala-collection-compat.version>
 
         <arrow.version>16.0.0</arrow.version>
-        <!-- Please don't upgrade the version to 4.10+, it depends on JDK 11 -->
-        <antlr4.version>4.9.3</antlr4.version>
+        <antlr4.version>4.13.1</antlr4.version>
         <antlr.st4.version>4.3.4</antlr.st4.version>
         <apache.archive.dist>https://archive.apache.org/dist</apache.archive.dist>
         <atlas.version>2.3.0</atlas.version>
@@ -135,7 +134,7 @@
         <commons-io.version>2.16.1</commons-io.version>
         <commons-lang3.version>3.13.0</commons-lang3.version>
         <delta.artifact>delta-spark_${scala.binary.version}</delta.artifact>
-        <delta.version>3.2.0</delta.version>
+        <delta.version>4.0.0rc1</delta.version>
         <failsafe.verion>3.3.2</failsafe.verion>
         <fb303.version>0.9.3</fb303.version>
         <flexmark.version>0.62.2</flexmark.version>
@@ -157,9 +156,9 @@
         <httpclient.version>4.5.14</httpclient.version>
         <httpcore.version>4.4.16</httpcore.version>
         <hudi.version>0.15.0</hudi.version>
-        <hudi.artifact>hudi-spark${spark.binary.version}-bundle_${scala.binary.version}</hudi.artifact>
+        <hudi.artifact>hudi-spark3.5-bundle_${scala.binary.version}</hudi.artifact>
         <iceberg.version>1.6.1</iceberg.version>
-        <iceberg.artifact>iceberg-spark-runtime-${spark.binary.version}_${scala.binary.version}</iceberg.artifact>
+        <iceberg.artifact>iceberg-spark-runtime-3.5_${scala.binary.version}</iceberg.artifact>
         <jackson.version>2.15.4</jackson.version>
         <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <!-- 6.0.0 requires JDK 11 -->
@@ -173,7 +172,7 @@
         <junit.version>4.13.2</junit.version>
         <kafka.version>3.5.2</kafka.version>
         <kubernetes-client.version>6.13.1</kubernetes-client.version>
-        <kyuubi-relocated.version>0.4.1</kyuubi-relocated.version>
+        <kyuubi-relocated.version>0.5.0-SNAPSHOT</kyuubi-relocated.version>
         <kyuubi-relocated-zookeeper.artifacts>kyuubi-relocated-zookeeper-34</kyuubi-relocated-zookeeper.artifacts>
         <ldapsdk.version>6.0.5</ldapsdk.version>
         <log4j.version>2.20.0</log4j.version>
@@ -183,7 +182,7 @@
         <openai.java.version>0.12.0</openai.java.version>
         <retrofit.version>2.9.0</retrofit.version>
         <paimon.version>0.8.2</paimon.version>
-        <paimon.artifact>paimon-spark-${spark.binary.version}</paimon.artifact>
+        <paimon.artifact>paimon-spark-3.5</paimon.artifact>
         <phoenix.version>6.0.0</phoenix.version>
         <postgresql.version>42.7.2</postgresql.version>
         <prometheus.version>0.16.0</prometheus.version>
@@ -198,10 +197,10 @@
           DO NOT forget to change the following properties when change the minor version of Spark:
           `delta.version`, `delta.artifact`, `maven.plugin.scalatest.exclude.tags`
           -->
-        <spark.version>3.5.2</spark.version>
-        <spark.binary.version>3.5</spark.binary.version>
-        <spark.archive.scala.suffix></spark.archive.scala.suffix>
-        <spark.archive.name>spark-${spark.version}-bin-hadoop3${spark.archive.scala.suffix}.tgz</spark.archive.name>
+        <spark.version>4.0.0-preview2</spark.version>
+        <spark.binary.version>4.0</spark.binary.version>
+        <spark.archive.scala.suffix>-scala${scala.binary.version}</spark.archive.scala.suffix>
+        <spark.archive.name>spark-${spark.version}-bin-hadoop3.tgz</spark.archive.name>
         <spark.archive.mirror>${apache.archive.dist}/spark/spark-${spark.version}</spark.archive.mirror>
         <spark.archive.download.skip>false</spark.archive.download.skip>
         <sqlite.version>3.42.0.0</sqlite.version>
@@ -233,7 +232,7 @@
         <maven.plugin.frontend.version>1.12.1</maven.plugin.frontend.version>
         <maven.plugin.scala.version>4.9.2</maven.plugin.scala.version>
         <maven.plugin.scalatest.version>2.2.0</maven.plugin.scalatest.version>
-        <maven.plugin.scalatest.exclude.tags>org.scalatest.tags.Slow</maven.plugin.scalatest.exclude.tags>
+        <maven.plugin.scalatest.exclude.tags>org.scalatest.tags.Slow,org.apache.kyuubi.tags.DeltaTest,org.apache.kyuubi.tags.IcebergTest,org.apache.kyuubi.tags.PaimonTest,org.apache.kyuubi.tags.HudiTest</maven.plugin.scalatest.exclude.tags>
         <maven.plugin.scalatest.include.tags></maven.plugin.scalatest.include.tags>
         <maven.plugin.scalatest.debug.enabled>false</maven.plugin.scalatest.debug.enabled>
         <!-- TODO: Once we drop support for Java 8, we can consider upgrade spotless.version to 2.43.0. -->
@@ -304,6 +303,11 @@
             <dependency>
                 <groupId>org.apache.kyuubi</groupId>
                 <artifactId>kyuubi-relocated-hive-service-rpc</artifactId>
+                <version>${kyuubi-relocated.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kyuubi</groupId>
+                <artifactId>kyuubi-relocated-spark-connect-rpc</artifactId>
                 <version>${kyuubi-relocated.version}</version>
             </dependency>
             <dependency>
@@ -458,15 +462,6 @@
                 <artifactId>spark-core_${scala.binary.version}</artifactId>
                 <version>${spark.version}</version>
                 <exclusions>
-                    <!--  Use log4j2 -->
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
                     <!-- SPARK-40511 upgrade SLF4J2, which is not compatible w/ SLF4J1 -->
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>
@@ -485,6 +480,13 @@
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-sql_${scala.binary.version}</artifactId>
                 <version>${spark.version}</version>
+                <exclusions>
+                    <!-- SPARK-40511 upgrade SLF4J2, which is not compatible w/ SLF4J1 -->
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-slf4j2-impl</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -499,15 +501,6 @@
                 <version>${spark.version}</version>
                 <type>test-jar</type>
                 <exclusions>
-                    <!--  Use log4j2 -->
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
                     <!-- SPARK-40511 upgrade SLF4J2, which is not compatible w/ SLF4J1 -->
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>
@@ -528,6 +521,13 @@
                 <artifactId>spark-sql_${scala.binary.version}</artifactId>
                 <version>${spark.version}</version>
                 <type>test-jar</type>
+                <exclusions>
+                    <!-- SPARK-40511 upgrade SLF4J2, which is not compatible w/ SLF4J1 -->
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-slf4j2-impl</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -1257,6 +1257,18 @@
             <name>Maven Repository</name>
             <url>https://repo.maven.apache.org/maven2</url>
         </repository>
+
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>staging</id>
+            <name>Staging Repo</name>
+            <url>https://repository.apache.org/content/repositories/orgapachespark-1468/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -1952,10 +1964,11 @@
             <id>scala-2.12</id>
             <properties>
                 <scala.binary.version>2.12</scala.binary.version>
+                <scala.version>2.12.19</scala.version>
+                <spark.archive.scala.suffix></spark.archive.scala.suffix>
             </properties>
         </profile>
 
-        <!-- For development only, not generally applicable for all modules -->
         <profile>
             <id>scala-2.13</id>
             <properties>
@@ -2016,9 +2029,10 @@
                 <module>extensions/spark/kyuubi-spark-connector-hive</module>
             </modules>
             <properties>
-                <spark.version>4.0.0-preview1</spark.version>
+                <spark.version>4.0.0-preview2</spark.version>
                 <spark.binary.version>4.0</spark.binary.version>
                 <antlr4.version>4.13.1</antlr4.version>
+                <!-- TODO: update once Delta support Spark 4.0.0-preview2 -->
                 <delta.version>4.0.0rc1</delta.version>
                 <delta.artifact>delta-spark_${scala.binary.version}</delta.artifact>
                 <!-- TODO: update once Hudi support Spark 4.0 -->
@@ -2027,7 +2041,8 @@
                 <iceberg.artifact>iceberg-spark-runtime-3.5_${scala.binary.version}</iceberg.artifact>
                 <!-- TODO: update once Paimon support Spark 4.0 -->
                 <paimon.artifact>paimon-spark-3.5</paimon.artifact>
-                <maven.plugin.scalatest.exclude.tags>org.scalatest.tags.Slow,org.apache.kyuubi.tags.IcebergTest,org.apache.kyuubi.tags.PaimonTest,org.apache.kyuubi.tags.HudiTest</maven.plugin.scalatest.exclude.tags>
+                <maven.plugin.scalatest.exclude.tags>org.scalatest.tags.Slow,org.apache.kyuubi.tags.DeltaTest,org.apache.kyuubi.tags.IcebergTest,org.apache.kyuubi.tags.PaimonTest,org.apache.kyuubi.tags.HudiTest</maven.plugin.scalatest.exclude.tags>
+                <spark.archive.mirror>https://dist.apache.org/repos/dist/dev/spark/v4.0.0-preview2-rc1-bin</spark.archive.mirror>
                 <spark.archive.name>spark-${spark.version}-bin-hadoop3.tgz</spark.archive.name>
             </properties>
         </profile>
