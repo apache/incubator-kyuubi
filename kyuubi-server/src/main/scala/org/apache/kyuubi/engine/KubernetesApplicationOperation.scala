@@ -174,6 +174,7 @@ class KubernetesApplicationOperation extends ApplicationOperation with Logging {
   }
 
   override def killApplicationByTag(
+      sessionConf: Option[KyuubiConf],
       appMgrInfo: ApplicationManagerInfo,
       tag: String,
       proxyUser: Option[String] = None): KillResponse = {
@@ -214,6 +215,7 @@ class KubernetesApplicationOperation extends ApplicationOperation with Logging {
   }
 
   override def getApplicationInfoByTag(
+      sessionConf: Option[KyuubiConf],
       appMgrInfo: ApplicationManagerInfo,
       tag: String,
       proxyUser: Option[String] = None,
